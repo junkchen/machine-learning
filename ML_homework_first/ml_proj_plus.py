@@ -166,6 +166,22 @@ best_param = clf.best_params_
 print(best_param)
 
 
+params = {'n_estimators':[10, 200],
+          'max_depth':[1, 16]}
+clf = GridSearchCV(rfc, params, cv=5)
+clf.fit(X_train, Y_train)
+train_score = clf.score(X_train, Y_train)
+test_score = clf.score(X_test, Y_test)
+print('train score: {}, test score: {}'.format(train_score, test_score))
+
+print(clf.best_params_)
+prediction_proba = clf.predict_proba(test_x)[:, 1]
+result = pd.DataFrame({'ID' : test_df['ID'],
+                           'TARGET' : prediction_proba})
+result.to_csv('rfc.csv', index=False)
+
+
+
 # 
 import lightgbm as lgb
 
@@ -180,17 +196,25 @@ gbm.fit(train_x, train_y)
 gbm.fit(new_train_x, train_y)
 # kfold = KFold(n_splits=5)
 # cross_val_score(gbm, train_x, train_y, cv=kfold)
+
+params = {'n_estimators':[10, 500],
+          'learning_rate':[0.1, 0.3],
+          'max_depth':[1, 16]}
+gbm = lgb.LGBMClassifier()
+gbm = GridSearchCV(gbm, params, cv=5)
+gbm.fit(X_train, Y_train)
+print(gbm.best_params_)
+
 train_score = gbm.score(X_train, Y_train)
 test_score = gbm.score(X_test, Y_test)
 print('train score: {}, test score: {}'.format(train_score, test_score))
 
 prediction_proba = gbm.predict_proba(test_x)[:, 1]
-result = pd.DataFrame({'ID' : test_df['ID'],
-                           'TARGET' : prediction_proba})
+result = pd.DataFrame({'ID' : test_df['ID'], 'TARGET' : prediction_proba})
 result.to_csv('lgbm.csv', index=False)
 
 # 
-train_data = lgb.Dataset(X_train, label=Y_train)
+train_data = lgb.Dataset(X_train, label=Y_train, free_raw_data=False)
 test_data = lgb.Dataset(X_test, label=Y_test)
 param = {
          'boosting_type': 'gbdt',
@@ -224,3 +248,16 @@ print('train score: {}, test score: {}'.format(train_score, test_score))
 br = bst.predict(X_test)
 br = bst.predict(test_x)
 br = br > .5
+
+rcf = RandomForestClassifier()
+rcf.get_params()
+
+
+
+# *********贝叶斯优化超参数
+from bayes_opt import BayesianOptimization
+
+def lgbm_cv():
+    lgbm = lgb.LGBMClassifier()
+    val = cross_val_score(lgbm, train_x, train_y, cv=3)
+
